@@ -1,0 +1,30 @@
+---
+image: docker:latest
+services:
+- docker:dind
+
+variables:
+  IMAGE_NAME: $CI_REGISTRY/$CI_PROJECT_PATH
+  DOCKER_DRIVER: overlay2
+
+stages:
+- build
+- test
+
+cache:
+  key: $CI_PROJECT_NAME
+  paths:
+  - .venv
+
+build:
+  stage: build
+
+  script:
+  - docker build -t $IMAGE_NAME:$CI_COMMIT_SHA .
+  - echo "$CI_JOB_TOKEN" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
+  - docker push $IMAGE_NAME:$CI_COMMIT_SHA
+  only:
+  - main
+  - merge_requests
+
+

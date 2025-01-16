@@ -1,0 +1,38 @@
+[project]
+name = "socketio"
+version = "0.1.0"
+description = "Default template for PDM package"
+authors = [
+    {name = "ToshibaMastr", email = "ggostem42@gmail.com"},
+]
+dependencies = ["uvicorn>=0.34.0", "python-socketio[asyncio]>=5.12.1", "python-dotenv>=1.0.1", "asyncpg>=0.30.0", "sqlalchemy[asyncio]>=2.0.36", "apscheduler[asyncio]>=3.11.0"]
+requires-python = "==3.14.*"
+readme = "README.md"
+license = {text = "MIT"}
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+
+[tool.pdm.scripts]
+start = "uvicorn src.service.app:app --port 5000"
+
+[tool.pdm]
+distribution = true
+
+
+[dependency-groups]
+lint = [
+    "ruff>=0.8.4",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+select = ["E", "F", "I", "N"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
