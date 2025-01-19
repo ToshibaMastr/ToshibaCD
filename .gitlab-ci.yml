@@ -6,6 +6,7 @@ services:
 variables:
   IMAGE_NAME: $CI_REGISTRY/$CI_PROJECT_PATH
   DOCKER_DRIVER: overlay2
+  DOCKER_HOST: tcp://docker:2375
 
 stages:
 - build
@@ -21,10 +22,25 @@ build:
 
   script:
   - docker build -t $IMAGE_NAME:$CI_COMMIT_SHA .
+
   - echo "$CI_JOB_TOKEN" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
+  
   - docker push $IMAGE_NAME:$CI_COMMIT_SHA
+  - |
+    if [ "$CI_COMMIT_BRANCH" == "main" ]; then
+      docker tag $IMAGE_NAME:$CI_COMMIT_SHA $IMAGE_NAME:latest
+      docker push $IMAGE_NAME:$CI_COMMIT_SHA
+      docker push $IMAGE_NAME:latest
+    else
+      docker tag $IMAGE_NAME:$CI_COMMIT_SHA $IMAGE_NAME:staging
+      docker push $IMAGE_NAME:$CI_COMMIT_SHA
+      docker push $IMAGE_NAME:staging
+    fi
+  - |
+    if [ "$CI_COMMIT_BRANCH" != "main" ]; then
+      docker rmi $IMAGE_NAME:$CI_COMMIT_SHA || true
+    fi
   only:
   - main
-  - merge_requests
 
 
