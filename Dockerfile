@@ -25,4 +25,4 @@ ENV PYTHONPATH="/app/src:$PYTHONPATH"
 RUN useradd -m appuser
 USER appuser
 
-CMD ["python", "-m", "uvicorn", "service.app:app", "--host", "0.0.0.0", "--port", "5001"]
+CMD ["python", "-m", "uvicorn", "src.service.app:app", "--host", "0.0.0.0", "--port", "5001"]
