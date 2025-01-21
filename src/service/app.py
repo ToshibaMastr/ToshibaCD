@@ -87,7 +87,7 @@ async def build_query(request):
 
 
 async def get_objects(request: Dict):
-    async for session in async_session():
+    async with async_session() as session:
         query = await build_query(request)
         result = await session.execute(query)
         entitys = result.scalars().all()
@@ -115,10 +115,9 @@ async def resolve_dependencies(objects, dependencies):
             model_type = MODEL_MAPPING_R[type(resolved)]
             dep_results[model_type].append(resolved.to_dict())
 
-    async for session in async_session():
-        for dependency in dependencies:
-            for obj in objects:
-                await process_dependency(obj, dependency)
+    for dependency in dependencies:
+        for obj in objects:
+            await process_dependency(obj, dependency)
 
     return dep_results
 
