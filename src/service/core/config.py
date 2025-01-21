@@ -25,5 +25,3 @@ class BaseConfig:
 
 
 config = BaseConfig()
-
-{"ru": {"title": "HiTech", "description":{"large":"Some Large Text", "medium":"Это уникальный индустриальный сервер с большим количеством технических модов. Тут Вы найдете ваши любимые моды, такие как: Industrial Craft 2, Avaritia, Forestry, Applied Energistics 2, Draconic Evolution, а также ещё много чего интересного. Построй свой город с самой мощной электростанцией или лабораторию по производству иридия. Поторопись, твои друзья уже начали строить завод!", "small":"Some Small Text"}},"en": {"title": "HiTech", "description":{"large":"Some Large Text", "medium":"Some Medium Text", "small":"Some Small Text"}},"common": {}}
