@@ -20,8 +20,13 @@ COPY src src/
 COPY pyproject.toml .
 
 ENV VIRTUAL_ENV="/app/venv"
+ENV HOST="0.0.0.0"
+ENV PORT="5000"
 
 RUN useradd -m appuser
 USER appuser
 
-CMD ["python", "-m", "uvicorn", "src.service.app:app", "--host", "0.0.0.0", "--port", "5001"]
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:${PORT} || exit 1
+
+CMD ["python", "-m", "uvicorn", "src.service.app:app", "--host", "$HOST", "--port", "$PORT"]
