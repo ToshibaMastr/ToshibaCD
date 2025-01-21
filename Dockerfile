@@ -20,7 +20,6 @@ COPY src src/
 COPY pyproject.toml .
 
 ENV VIRTUAL_ENV="/app/venv"
-ENV PYTHONPATH="/app/src:$PYTHONPATH"
 
 RUN useradd -m appuser
 USER appuser
