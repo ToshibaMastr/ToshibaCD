@@ -1,52 +1,55 @@
 ---
 image: docker:latest
 services:
-- docker:dind
+  - name: docker:dind
+    command: ["--tls=false"]
 
 variables:
   IMAGE_NAME: $CI_REGISTRY/$CI_PROJECT_PATH
+  DOCKER_TLS_CERTDIR: ""
   DOCKER_DRIVER: overlay2
+  DOCKER_BUILDKIT: 1
 
 stages:
-- build
-- test
+  - build
+  - test
 
 cache:
   key: $CI_PROJECT_NAME
-  paths:
-  - .venv
 
 build:
   stage: build
 
   script:
-  - |
-    if [ -n "$CI_COMMIT_TAG" ]; then
-      TAG=$CI_COMMIT_TAG
-    else
-      TAG=$CI_COMMIT_SHA
-    fi
-  
-  - docker build -t $IMAGE_NAME:$TAG .
+    - |
+      if [ -n "$CI_COMMIT_TAG" ]; then
+        TAG=$CI_COMMIT_TAG
+      else
+        TAG=$CI_COMMIT_SHA
+      fi
 
-  - echo "$CI_JOB_TOKEN" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
+    - docker buildx create --use
+    - docker buildx inspect --bootstrap
 
-  - docker push $IMAGE_NAME:$TAG
+    - echo "$CI_JOB_TOKEN" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
 
-  - |
-    if [ "$CI_COMMIT_BRANCH" == "main" ] || [ -n "$CI_COMMIT_TAG" ]; then
-      docker tag $IMAGE_NAME:$TAG $IMAGE_NAME:latest
-      docker push $IMAGE_NAME:latest
-    else
-      docker tag $IMAGE_NAME:$TAG $IMAGE_NAME:staging
-      docker push $IMAGE_NAME:staging
-    fi
-    
-  - |
-    if [ "$CI_COMMIT_BRANCH" != "main" ] && [ -z "$CI_COMMIT_TAG" ]; then
-      docker rmi $IMAGE_NAME:$TAG || true
-    fi
+    - >
+      docker buildx build
+      --cache-from type=registry,ref=$IMAGE_NAME:cache
+      --cache-to type=registry,ref=$IMAGE_NAME:cache,mode=max
+      --platform linux/amd64
+      -t $IMAGE_NAME:$TAG
+      --push
+      .
+
+    - >
+      docker buildx build
+      --cache-from type=registry,ref=$IMAGE_NAME:cache
+      --platform linux/amd64
+      -t $IMAGE_NAME:latest
+      --push
+      .
 
   only:
-  - main
-  - tags
+    - main
+    - tags
