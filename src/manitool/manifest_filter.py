@@ -15,19 +15,19 @@ from .utils import (
 )
 
 
-class Manifest:
+class ManifestFilter:
     def __init__(self, manifest: Optional[Dict] = None):
         self.data: Dict[str, Any] = manifest or {}
 
     @classmethod
-    def from_file(cls, file: Path) -> "Manifest":
+    def from_file(cls, file: Path) -> "ManifestFilter":
         if file.is_file():
             return cls.from_bytes(file.read_bytes())
         return cls()
 
     @classmethod
-    def from_bytes(cls, data: bytes) -> "Manifest":
-        if not data.startswith(b"TCD\1"):
+    def from_bytes(cls, data: bytes) -> "ManifestFilter":
+        if not data.startswith(b"TCD\2"):
             raise ValueError("Invalid data format")
 
         decompressed_data = zstd.decompress(data[4:])
@@ -48,7 +48,7 @@ class Manifest:
         directory_data, _, files = process_directory(data, files=[])
         payload = directory_data + process_files(files)
 
-        out = b"TCD\1" + zstd.compress(payload, level=compress_level)
+        out = b"TCD\2" + zstd.compress(payload, level=compress_level)
 
         return out
 

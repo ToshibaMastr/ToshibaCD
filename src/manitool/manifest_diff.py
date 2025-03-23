@@ -1,6 +1,6 @@
 import zipfile
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from .file_diff import FileChangeType, FileRef
 from .manifest import Manifest
@@ -9,13 +9,13 @@ from .manifest import Manifest
 class ManifestDiff:
     def __init__(
         self,
-        added: List[FileRef] = [],
-        deleted: List[FileRef] = [],
-        unchanged: List[FileRef] = [],
+        added: Optional[List[FileRef]] = None,
+        deleted: Optional[List[FileRef]] = None,
+        unchanged: Optional[List[FileRef]] = None,
     ):
-        self.added = added
-        self.deleted = deleted
-        self.unchanged = unchanged
+        self.added = added or []
+        self.deleted = deleted or []
+        self.unchanged = unchanged or []
 
     @property
     def has_changes(self) -> bool:

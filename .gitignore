@@ -160,4 +160,4 @@ cython_debug/
 # Zed
 .zed
 
-.storage
+storage/
