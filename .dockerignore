@@ -163,3 +163,5 @@ cython_debug/
 
 # Zed
 .zed
+
+.uv.lock
