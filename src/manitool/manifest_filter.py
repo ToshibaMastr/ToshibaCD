@@ -1,23 +1,43 @@
+from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Dict, Optional, Set
 
 import zstandard as zstd
 
+from .manifest import Manifest
 from .utils import (
-    connect,
     create_manifest_dict,
     optimize_manifest,
+    unify_manifest_paths,
+)
+from .utils_filter import (
+    connect,
     parse_directory,
     parse_files,
     process_directory,
     process_files,
-    unify_manifest_paths,
 )
 
 
 class ManifestFilter:
     def __init__(self, manifest: Optional[Dict] = None):
-        self.data: Dict[str, Any] = manifest or {}
+        self.data: Dict[str, Set] = defaultdict(set)
+        if manifest:
+            self.data |= manifest
+
+    def update(self, manifest: Manifest):
+        for path, hash in manifest.data.items():
+            self.data[path].add(hash)
+
+    def filter(self, manifest: Manifest):
+        paths_to_remove = []
+
+        for path, hash_value in manifest.data.items():
+            if not (path in self.data and hash_value in self.data[path]):
+                paths_to_remove.append(path)
+
+        for path in paths_to_remove:
+            manifest.data.pop(path)
 
     @classmethod
     def from_file(cls, file: Path) -> "ManifestFilter":
@@ -51,20 +71,3 @@ class ManifestFilter:
         out = b"TCD\2" + zstd.compress(payload, level=compress_level)
 
         return out
-
-    def process_directory(
-        self, current: Path, ignore: str = "", base: Optional[Path] = None
-    ):
-        if base is None:
-            base = current
-
-        for file_path in current.iterdir():
-            if ignore == str(file_path.name):
-                continue
-
-            if file_path.is_file():
-                filepath = str(file_path.relative_to(base))
-                self.data[filepath] = self.data.get(filepath, None)
-
-            elif file_path.is_dir():
-                self.process_directory(file_path, ignore, base)

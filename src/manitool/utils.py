@@ -50,7 +50,7 @@ def unify_manifest_paths(d: Dict[str, Any]) -> Dict[str, Any]:
     result = {}
 
     for key, value in d.copy().items():
-        if isinstance(value, str):
+        if not isinstance(value, Dict):
             if "/" in key:
                 path, name = key.rsplit("/", 1)
                 result[path] = {name: value}

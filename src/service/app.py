@@ -5,10 +5,10 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse, Response
 
-from ..manitool import Manifest, ManifestDiff
+from ..manitool import Manifest, ManifestDiff, ManifestFilter
 from .api.models import StorageStatus, UploadResponse
 from .api.utils import get_storage_dir
-from .core.config import BASE_STORAGE_DIR, MANIFEST_FILE_PATH
+from .core.config import BASE_STORAGE_DIR, FILTER_FILE_PATH, MANIFEST_FILE_PATH
 
 app = FastAPI(
     title="Toshiba Content Delivery",
@@ -37,13 +37,18 @@ async def upload_archive(
 
     storage_dir = BASE_STORAGE_DIR / storage
     manifest_path = storage_dir / MANIFEST_FILE_PATH
+    filter_path = storage_dir / FILTER_FILE_PATH
 
     manifest = Manifest.from_file(manifest_path)
 
     mdiff = ManifestDiff.from_zip(io.BytesIO(content), storage_dir)
     mdiff.apply_to(manifest)
 
+    filter = ManifestFilter.from_file(filter_path)
+    filter.update(manifest)
+
     manifest.save_file(manifest_path)
+    filter.save_file(filter_path)
 
     return UploadResponse(
         status=StorageStatus.SUCCESS,
@@ -58,6 +63,7 @@ async def download_archive(
 ):
     storage_dir = BASE_STORAGE_DIR / storage
     manifest_path = storage_dir / MANIFEST_FILE_PATH
+    filter_path = storage_dir / FILTER_FILE_PATH
 
     if not manifest_path.is_file():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
@@ -67,6 +73,9 @@ async def download_archive(
         client_manifest = Manifest.from_bytes(content)
     else:
         client_manifest = Manifest()
+
+    filter = ManifestFilter.from_file(filter_path)
+    filter.filter(client_manifest)
 
     server_manifest = Manifest.from_file(manifest_path)
     mdiff = ManifestDiff.create(server_manifest, client_manifest)

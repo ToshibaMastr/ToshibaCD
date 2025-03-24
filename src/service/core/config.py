@@ -18,3 +18,4 @@ load_dotenv()
 BASE_STORAGE_DIR = Path("storage/")
 BASENAME = Path(".tcd/")
 MANIFEST_FILE_PATH = BASENAME / "manifest"
+FILTER_FILE_PATH = BASENAME / "filter"
