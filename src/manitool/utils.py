@@ -80,7 +80,9 @@ def process_directory(
             files.append(File(pathi, selfpf, int(value, 16)))
 
     dir_name = path.encode("ascii")
-    result = struct.pack(f"<{len(dir_name) + 1}sH", dir_name, dir_count) + result
+    result = (
+        struct.pack(f"<B{len(dir_name)}sH", len(dir_name), dir_name, dir_count) + result
+    )
 
     return result, count, files
 
@@ -90,7 +92,7 @@ def process_files(files: List[File]) -> bytearray:
     for file in files:
         filename = file.name.encode("ascii")
         result += struct.pack(
-            f"<{len(filename) + 1}sHI", filename, file.path, file.hash
+            f"<B{len(filename)}sHI", len(filename), filename, file.path, file.hash
         )
 
     return result
@@ -99,9 +101,11 @@ def process_files(files: List[File]) -> bytearray:
 def parse_directory(data: bytes, offset: int = 0, basepath: str = ""):
     paths = []
 
-    dir_name_length = data[offset:].index(0) + 1
+    dir_name_length = struct.unpack_from("<B", data, offset)[0]
+    offset += struct.calcsize("<B")
     dir_name, dir_count = struct.unpack_from(f"<{dir_name_length}sH", data, offset)
-    dir_name = f"{basepath}{dir_name.rstrip(b'\0').decode('ascii')}/"
+
+    dir_name = f"{basepath}{dir_name.decode('ascii')}/"
     offset += struct.calcsize(f"<{dir_name_length}sH")
     paths.append(dir_name)
 
@@ -116,9 +120,11 @@ def parse_files(data: bytes, offset: int = 0):
     files = []
 
     while offset < len(data):
-        name_length = data[offset:].index(0) + 1
+        name_length = struct.unpack_from("<B", data, offset)[0]
+        offset += struct.calcsize("<B")
         name, path, hash = struct.unpack_from(f"<{name_length}sHI", data, offset)
-        name = name.rstrip(b"\0").decode("ascii")
+
+        name = name.decode("ascii")
         files.append(File(name, path, hash))
         offset += struct.calcsize(f"<{name_length}sHI")
 
@@ -130,7 +136,7 @@ def connect(paths: List[str], files: List[File]):
 
     for file in files:
         path = paths[file.path]
-        fullparh = (path + file.name).lstrip("./")
-        manifest[fullparh] = format(file.hash, "08X")
+        fullpath = (path + file.name).lstrip("./")
+        manifest[fullpath] = format(file.hash, "08X")
 
     return manifest
