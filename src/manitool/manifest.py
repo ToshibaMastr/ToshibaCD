@@ -1,5 +1,6 @@
+from io import BufferedReader
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, BinaryIO, Dict, Optional
 
 import zstandard as zstd
 
@@ -20,41 +21,43 @@ class Manifest:
         self.data: Dict[str, Any] = manifest or {}
 
     @classmethod
-    def from_file(cls, file: Path) -> "Manifest":
-        if file.is_file():
-            return cls.from_bytes(file.read_bytes())
-        return cls()
+    def from_file(cls, path: Path) -> "Manifest":
+        if not path.is_file():
+            return cls()
+
+        with path.open("rb") as f:
+            return cls.from_bytes(f)
 
     @classmethod
-    def from_bytes(cls, data: bytes) -> "Manifest":
-        if not data.startswith(b"TCD\1"):
+    def from_bytes(cls, stream: BufferedReader | BinaryIO) -> "Manifest":
+        if stream.read(4) != b"TCD\1":
             raise ValueError("Invalid data format")
 
-        decompressed_data = zstd.decompress(data[4:])
-        paths, offset = parse_directory(decompressed_data)
-        files, _ = parse_files(decompressed_data, offset)
+        dctx = zstd.ZstdDecompressor()
+        reader = dctx.stream_reader(stream)
+
+        paths = parse_directory(reader)
+        files = parse_files(reader)
 
         return cls(connect(paths, files))
 
-    def save_file(self, file: Path):
-        file.parent.mkdir(parents=True, exist_ok=True)
-        file.write_bytes(self.dumps())
+    def save(self, path: Path):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("wb") as f:
+            self.write(f)
 
-    def dumps(self, compress_level: int = 22):
+    def write(self, stream: BinaryIO, compress_level: int = 22):
         data = create_manifest_dict(self.data)
         data = optimize_manifest(data)
         data = unify_manifest_paths(data)
 
-        directory_data, _, files = process_directory(data, files=[])
-        payload = directory_data + process_files(files)
+        stream.write(b"TCD\1")
+        compressor = zstd.ZstdCompressor()
+        with compressor.stream_writer(stream, closefd=False) as cstream:
+            _, files = process_directory(cstream, data)
+            process_files(cstream, files)
 
-        out = b"TCD\1" + zstd.compress(payload, level=compress_level)
-
-        return out
-
-    def process_directory(
-        self, current: Path, ignore: str = "", base: Optional[Path] = None
-    ):
+    def scan(self, current: Path, ignore: str = "", base: Optional[Path] = None):
         if base is None:
             base = current
 
@@ -67,4 +70,4 @@ class Manifest:
                 self.data[filepath] = self.data.get(filepath, None)
 
             elif file_path.is_dir():
-                self.process_directory(file_path, ignore, base)
+                self.scan(file_path, ignore, base)

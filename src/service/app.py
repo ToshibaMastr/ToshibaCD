@@ -43,7 +43,7 @@ async def upload_archive(
     mdiff = ManifestDiff.from_zip(io.BytesIO(content), storage_dir)
     mdiff.apply_to(manifest)
 
-    manifest.save_file(manifest_path)
+    manifest.save(manifest_path)
 
     return UploadResponse(
         status=StorageStatus.SUCCESS,
@@ -63,8 +63,7 @@ async def download_archive(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
     if manifest:
-        content = await manifest.read()
-        client_manifest = Manifest.from_bytes(content)
+        client_manifest = Manifest.from_bytes(manifest.file)
     else:
         client_manifest = Manifest()
 

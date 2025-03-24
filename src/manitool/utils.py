@@ -1,5 +1,5 @@
 import struct
-from typing import Any, Dict, List
+from typing import Any, BinaryIO, Dict, List
 
 from .base import File
 
@@ -63,72 +63,77 @@ def unify_manifest_paths(d: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def process_directory(
-    manifest: Dict, path: str = ".", count: int = 0, files: List[File] = []
-) -> tuple[bytes, int, List[File]]:
+    stream: BinaryIO,
+    manifest: Dict,
+    path: str = ".",
+    count: int = 0,
+) -> tuple[int, List[File]]:
     selfpf = count
     count += 1
 
-    result = bytearray()
+    files = []
     dir_count = 0
 
     for pathi, value in manifest.items():
         if isinstance(value, dict):
-            dir_result, count, files = process_directory(value, pathi, count, files)
-            result += dir_result
             dir_count += 1
+
+    dir_name = path.encode("ascii")
+    stream.write(
+        struct.pack(f"<B{len(dir_name)}sH", len(dir_name), dir_name, dir_count)
+    )
+
+    for pathi, value in manifest.items():
+        if isinstance(value, dict):
+            count, files_ = process_directory(stream, value, pathi, count)
+            files.extend(files_)
         else:
             files.append(File(pathi, selfpf, int(value, 16)))
 
-    dir_name = path.encode("ascii")
-    result = (
-        struct.pack(f"<B{len(dir_name)}sH", len(dir_name), dir_name, dir_count) + result
-    )
-
-    return result, count, files
+    return count, files
 
 
-def process_files(files: List[File]) -> bytearray:
-    result = bytearray()
+def process_files(strean: BinaryIO, files: List[File]):
     for file in files:
         filename = file.name.encode("ascii")
-        result += struct.pack(
-            f"<B{len(filename)}sHI", len(filename), filename, file.path, file.hash
+        strean.write(
+            struct.pack(
+                f"<B{len(filename)}sHI", len(filename), filename, file.path, file.hash
+            )
         )
 
-    return result
 
-
-def parse_directory(data: bytes, offset: int = 0, basepath: str = ""):
+def parse_directory(stream: BinaryIO, basepath: str = ""):
     paths = []
 
-    dir_name_length = struct.unpack_from("<B", data, offset)[0]
-    offset += struct.calcsize("<B")
-    dir_name, dir_count = struct.unpack_from(f"<{dir_name_length}sH", data, offset)
+    dir_name_length = struct.unpack("<B", stream.read(1))[0]
+    dir_name, dir_count = struct.unpack(
+        f"<{dir_name_length}sH", stream.read(dir_name_length + 2)
+    )
 
     dir_name = f"{basepath}{dir_name.decode('ascii')}/"
-    offset += struct.calcsize(f"<{dir_name_length}sH")
     paths.append(dir_name)
 
     for _ in range(dir_count):
-        sub_paths, offset = parse_directory(data, offset, dir_name)
-        paths += sub_paths
+        sub_paths = parse_directory(stream, dir_name)
+        paths.extend(sub_paths)
 
-    return paths, offset
+    return paths
 
 
-def parse_files(data: bytes, offset: int = 0):
+def parse_files(stream: BinaryIO):
     files = []
 
-    while offset < len(data):
-        name_length = struct.unpack_from("<B", data, offset)[0]
-        offset += struct.calcsize("<B")
-        name, path, hash = struct.unpack_from(f"<{name_length}sHI", data, offset)
+    while name_length_data := stream.read(1):
+        name_length = struct.unpack("<B", name_length_data)[0]
+        name, path, hash = struct.unpack(
+            f"<{name_length}sHI", stream.read(name_length + 6)
+        )
 
         name = name.decode("ascii")
         files.append(File(name, path, hash))
-        offset += struct.calcsize(f"<{name_length}sHI")
 
-    return files, offset
+    return files
 
 
 def connect(paths: List[str], files: List[File]):
