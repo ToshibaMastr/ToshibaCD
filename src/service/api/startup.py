@@ -7,7 +7,7 @@ from ..config import (
 )
 
 
-def apply_config():
+def init_storages():
     for storage in config.storages.values():
         storage_dir = STORAGE_DIR / storage.dir
         manifest_path = storage_dir / MANIFEST_PATH

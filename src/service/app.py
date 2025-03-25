@@ -6,6 +6,7 @@ from fastapi.responses import FileResponse, Response
 
 from ..manitool import Manifest, ManifestDiff
 from .api.models import StorageStatus, UploadResponse
+from .api.startup import init_storages
 from .api.utils import get_group, get_storage, permission_check
 from .config import MANIFEST_PATH, STORAGE_DIR
 from .config.models import Group, Storage
@@ -20,7 +21,7 @@ app = FastAPI(
 
 @app.on_event("startup")
 async def startup_event():
-    pass
+    init_storages()
 
 
 @app.get("/{storage}/manifest")
