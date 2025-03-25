@@ -4,6 +4,8 @@ WORKDIR /app
 ########################################################
 FROM python AS builder
 
+COPY src src/
+
 CMD [ "ls", "-la" ]
 # COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
@@ -18,7 +20,6 @@ CMD [ "ls", "-la" ]
 # COPY --from=builder /app/.venv .venv
 
 
-# COPY src src/
 # COPY pyproject.toml .
 
 # ENV PATH="/app/.venv/bin:$PATH"
