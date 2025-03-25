@@ -16,14 +16,12 @@ FROM python AS final
 
 COPY --from=builder /app/.venv .venv
 
-RUN echo "Current build context path: $(pwd)" && \
-    echo "Files in current directory:" && \
-    ls -la
+CMD [ "echo", "Current build context path: $(pwd)", "&&", "echo", "Files in current directory:", "&&", "ls", "-la" ]
 
-COPY src src/
-COPY pyproject.toml .
+# COPY src src/
+# COPY pyproject.toml .
 
-ENV PATH="/app/.venv/bin:$PATH"
+# ENV PATH="/app/.venv/bin:$PATH"
 
-EXPOSE 8080
-CMD ["uvicorn", "src.service:app", "--host", "0.0.0.0", "--port", "8080"]
+# EXPOSE 8080
+# CMD ["uvicorn", "src.service:app", "--host", "0.0.0.0", "--port", "8080"]
