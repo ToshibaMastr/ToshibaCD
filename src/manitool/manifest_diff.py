@@ -32,9 +32,9 @@ class ManifestDiff:
 
         for file, hash_value in a_copy.items():
             other_hash = b_copy.pop(file, None)
-            if other_hash is None:
+            if other_hash != hash_value:
                 added.append(FileRef(file, hash_value))
-            elif other_hash == hash_value:
+            else:
                 unchanged.append(FileRef(file, hash_value))
 
         for file, hash_value in b_copy.items():

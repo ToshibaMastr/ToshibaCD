@@ -1,14 +1,14 @@
 import io
 import tempfile
-from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse, Response
 
 from ..manitool import Manifest, ManifestDiff
 from .api.models import StorageStatus, UploadResponse
-from .api.utils import get_storage_dir
-from .core.config import BASE_STORAGE_DIR, MANIFEST_FILE_PATH
+from .api.utils import get_group, get_storage, permission_check
+from .config import MANIFEST_PATH, STORAGE_DIR
+from .config.models import Group, Storage
 
 app = FastAPI(
     title="Toshiba Content Delivery",
@@ -18,9 +18,19 @@ app = FastAPI(
 )
 
 
+@app.on_event("startup")
+async def startup_event():
+    pass
+
+
 @app.get("/{storage}/manifest")
-async def get_manifest_file(storage: Path = Depends(get_storage_dir)):
-    manifest_path = BASE_STORAGE_DIR / storage / MANIFEST_FILE_PATH
+async def get_manifest_file(
+    storage: Storage = Depends(get_storage),
+    group: Group = Depends(get_group),
+):
+    await permission_check(storage, group, ["read"])
+
+    manifest_path = STORAGE_DIR / storage.dir / MANIFEST_PATH
 
     if not manifest_path.is_file():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
@@ -31,12 +41,15 @@ async def get_manifest_file(storage: Path = Depends(get_storage_dir)):
 @app.post("/{storage}/upload")
 async def upload_archive(
     archive: UploadFile = File(..., description="Content archive"),
-    storage: Path = Depends(get_storage_dir),
+    storage: Storage = Depends(get_storage),
+    group: Group = Depends(get_group),
 ):
+    await permission_check(storage, group, ["write"])
+
     content = await archive.read()
 
-    storage_dir = BASE_STORAGE_DIR / storage
-    manifest_path = storage_dir / MANIFEST_FILE_PATH
+    storage_dir = STORAGE_DIR / storage.dir
+    manifest_path = storage_dir / MANIFEST_PATH
 
     manifest = Manifest.from_file(manifest_path)
 
@@ -54,10 +67,13 @@ async def upload_archive(
 @app.post("/{storage}/download")
 async def download_archive(
     manifest: UploadFile = File(None, description="Manifest file"),
-    storage: Path = Depends(get_storage_dir),
+    storage: Storage = Depends(get_storage),
+    group: Group = Depends(get_group),
 ):
-    storage_dir = BASE_STORAGE_DIR / storage
-    manifest_path = storage_dir / MANIFEST_FILE_PATH
+    await permission_check(storage, group, ["read"])
+
+    storage_dir = STORAGE_DIR / storage.dir
+    manifest_path = storage_dir / MANIFEST_PATH
 
     if not manifest_path.is_file():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)

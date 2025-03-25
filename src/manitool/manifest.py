@@ -1,6 +1,7 @@
-from io import BufferedReader
+from io import BufferedReader, IOBase
 from pathlib import Path
 from typing import Any, BinaryIO, Dict, Optional
+from zlib import crc32
 
 import zstandard as zstd
 
@@ -16,6 +17,14 @@ from .utils import (
 )
 
 
+def get_crc(path: Path, chunk_size=8196):
+    crc = 0
+    with open(path, "rb") as file:
+        while chunk := file.read(chunk_size):
+            crc = crc32(chunk, crc)
+    return format(crc, "08X")
+
+
 class Manifest:
     def __init__(self, manifest: Optional[Dict] = None):
         self.data: Dict[str, Any] = manifest or {}
@@ -29,7 +38,7 @@ class Manifest:
             return cls.from_bytes(f)
 
     @classmethod
-    def from_bytes(cls, stream: BufferedReader | BinaryIO) -> "Manifest":
+    def from_bytes(cls, stream: BufferedReader | IOBase | BinaryIO) -> "Manifest":
         if stream.read(4) != b"TCD\1":
             raise ValueError("Invalid data format")
 
@@ -67,7 +76,7 @@ class Manifest:
 
             if file_path.is_file():
                 filepath = str(file_path.relative_to(base))
-                self.data[filepath] = self.data.get(filepath, None)
+                self.data[filepath] = get_crc(file_path)
 
             elif file_path.is_dir():
                 self.scan(file_path, ignore, base)

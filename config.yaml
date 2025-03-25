@@ -1,0 +1,17 @@
+groups:
+  admin:
+    apikey: "2DD1203C-713D-4C50-A045-F328E3B98932"
+    permissions: [read, write]
+
+  public:
+    permissions: [read]
+
+storages:
+  # -= Monifactory =-
+  mnf.kubejs:
+    name: "Monifactory KubeJS"
+    permissions:
+      public: [read, write]
+
+  mnf.mods:
+    name: "Monifactory Mods"

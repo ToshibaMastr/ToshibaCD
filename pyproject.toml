@@ -8,6 +8,7 @@ dependencies = [
     "fastapi>=0.115.11",
     "python-dotenv>=1.0.1",
     "python-multipart>=0.0.20",
+    "pyyaml>=6.0.2",
     "uvicorn>=0.34.0",
     "zstandard>=0.23.0",
 ]
