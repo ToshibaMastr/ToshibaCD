@@ -4,19 +4,19 @@ WORKDIR /app
 ########################################################
 FROM python AS builder
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
-
-RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --no-install-project --no-editable
-
-########################################################
-FROM python AS final
-
-COPY --from=builder /app/.venv .venv
-
 CMD [ "echo", "Current build context path: $(pwd)", "&&", "echo", "Files in current directory:", "&&", "ls", "-la" ]
+# COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# RUN --mount=type=cache,target=/root/.cache/uv \
+#     --mount=type=bind,source=uv.lock,target=uv.lock \
+#     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+#     uv sync --frozen --no-install-project --no-editable
+
+# ########################################################
+# FROM python AS final
+
+# COPY --from=builder /app/.venv .venv
+
 
 # COPY src src/
 # COPY pyproject.toml .
