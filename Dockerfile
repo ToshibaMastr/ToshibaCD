@@ -16,6 +16,10 @@ FROM python AS final
 
 COPY --from=builder /app/.venv .venv
 
+RUN ls -la /app
+RUN ls -la 
+
+
 COPY src src/
 COPY pyproject.toml .
 
