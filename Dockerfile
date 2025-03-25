@@ -16,9 +16,9 @@ FROM python AS final
 
 COPY --from=builder /app/.venv .venv
 
-RUN ls -la /app
-RUN ls -la 
-
+RUN echo "Current build context path: $(pwd)" && \
+    echo "Files in current directory:" && \
+    ls -la
 
 COPY src src/
 COPY pyproject.toml .
