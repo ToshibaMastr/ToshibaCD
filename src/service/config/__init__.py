@@ -7,8 +7,6 @@ from .models import Config
 
 load_dotenv()
 
-# CONFIG_PATH = Path(os.getenv("CONFIG_PATH", "/app/config.yaml"))
-# STORAGE_DIR = Path(os.getenv("STORAGE_DIR", "/storage/"))
 CONFIG_PATH = Path(os.getenv("CONFIG_PATH", "/app/config.yaml"))
 STORAGE_DIR = Path(os.getenv("STORAGE_DIR", "/storage/"))
 METADATA_DIR = Path(".tcd/")
