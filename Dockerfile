@@ -4,7 +4,7 @@ WORKDIR /app
 ########################################################
 FROM python AS builder
 
-CMD [ "echo", "Current build context path: $(pwd)", "&&", "echo", "Files in current directory:", "&&", "ls", "-la" ]
+CMD [ "ls", "-la" ]
 # COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # RUN --mount=type=cache,target=/root/.cache/uv \
