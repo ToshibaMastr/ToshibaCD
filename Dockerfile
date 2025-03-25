@@ -1,29 +1,25 @@
-FROM python:3.14.0a3-slim AS python
+FROM python:3.13-slim AS python
 WORKDIR /app
 
 ########################################################
 FROM python AS builder
 
-RUN apt-get update && apt-get install -y build-essential curl
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-
-COPY pyproject.toml ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-install-project --no-editable
 
 ########################################################
 FROM python AS final
 
-COPY --from=builder /usr/local/lib/python3.14/site-packages/ /usr/local/lib/python3.14/site-packages/
+COPY --from=builder /app/.venv .venv
+
 COPY src src/
 COPY pyproject.toml .
 
-ENV HOST="0.0.0.0"
-ENV PORT="5000"
+ENV PATH="/app/.venv/bin:$PATH"
 
-RUN useradd -m appuser
-USER appuser
-
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:${PORT} || exit 1
-
-CMD ["python", "-m", "uvicorn", "src.service.app:app", "--host", "${HOST}", "--port", "${PORT}"]
+EXPOSE 8080
+CMD ["uvicorn", "src.service.app:app", "--host", "0.0.0.0", "--port", "8080"]
